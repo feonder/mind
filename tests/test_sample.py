@@ -29,3 +29,25 @@ def test_generated_tokens_in_vocab():
     idx = mx.array([[5]], dtype=mx.int32)
     out = generate(model, idx, max_new_tokens=8, block_size=16)
     assert mx.all(out >= 0).item() and mx.all(out < 256).item()
+
+
+def test_sample_main_with_bpe(tmp_path):
+    import os
+    import json
+    import mlx.core as mx
+    from mindllm.model import GPT, GPTConfig
+    from mindllm.bpe import BPETokenizer
+    from mindllm.sample import sample_main
+    tok = BPETokenizer().train("once upon a time there was a cat " * 100, vocab_size=300)
+    tp = str(tmp_path / "tok.json")
+    tok.save(tp)
+    out = str(tmp_path / "out")
+    os.makedirs(out)
+    cfg = GPTConfig(vocab_size=tok.vocab_size, block_size=16, n_layer=2, n_head=2, n_embd=64)
+    m = GPT(cfg)
+    mx.eval(m.parameters())
+    m.save_weights(f"{out}/ckpt.safetensors")
+    json.dump({"iter": 1, "config": vars(cfg)}, open(f"{out}/meta.json", "w"))
+    text = sample_main(f"{out}/ckpt.safetensors", out, prompt="once",
+                       max_new_tokens=5, temperature=0.8, tokenizer_path=tp)
+    assert isinstance(text, str) and len(text) >= 1

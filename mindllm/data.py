@@ -2,6 +2,8 @@ import os
 import numpy as np
 import mlx.core as mx
 
+from mindllm.tokenizer import ByteTokenizer
+
 
 def get_batch(data, block_size: int, batch_size: int, rng=None):
     """data (np dizisi) içinden rastgele (x, y) batch'i üretir. y, x'in 1 kaydırılmışı."""
@@ -18,30 +20,53 @@ def load_bin(path: str):
     return np.memmap(path, dtype=np.uint16, mode="r")
 
 
-def prepare_tinystories(out_dir: str, max_train: int = 20000, max_val: int = 2000):
-    """TinyStories'i indirir, byte'lara çevirir, train.bin/val.bin yazar."""
+def encode_texts(texts, tokenizer):
+    """Metin listesini verilen tokenizer ile token'lar; her metin sonuna newline ekler.
+    uint16 numpy dizisi döner (vocab <= 65535)."""
+    nl = tokenizer.encode("\n")
+    ids = []
+    for t in texts:
+        ids.extend(tokenizer.encode(t))
+        ids.extend(nl)
+    return np.array(ids, dtype=np.uint16)
+
+
+def _load_tokenizer(tokenizer_path):
+    if tokenizer_path is None:
+        return ByteTokenizer()
+    from mindllm.bpe import BPETokenizer
+    return BPETokenizer.load(tokenizer_path)
+
+
+def prepare_tinystories(out_dir, tokenizer=None, max_train=20000, max_val=2000):
+    """TinyStories'i indirir, verilen tokenizer ile token'lar, train.bin/val.bin yazar.
+    tokenizer None ise byte-level (ByteTokenizer)."""
     from datasets import load_dataset
 
+    if tokenizer is None:
+        tokenizer = ByteTokenizer()
     os.makedirs(out_dir, exist_ok=True)
     ds = load_dataset("roneneldan/TinyStories")
     for split, n, fname in [("train", max_train, "train.bin"),
                             ("validation", max_val, "val.bin")]:
-        chunks = []
+        texts = []
         for i, ex in enumerate(ds[split]):
             if i >= n:
                 break
-            chunks.append(ex["text"])
-        raw = ("\n".join(chunks)).encode("utf-8")
-        arr = np.frombuffer(raw, dtype=np.uint8).astype(np.uint16)
+            texts.append(ex["text"])
+        arr = encode_texts(texts, tokenizer)
         arr.tofile(os.path.join(out_dir, fname))
-        print(f"{fname}: {len(arr)} token")
+        print(f"{fname}: {len(arr)} token (vocab {tokenizer.vocab_size})")
 
 
 if __name__ == "__main__":
     import argparse
     p = argparse.ArgumentParser()
     p.add_argument("--out_dir", default="mindllm/data")
+    p.add_argument("--tokenizer", default=None, help="BPE tokenizer.json yolu; yoksa byte-level")
     p.add_argument("--max_train", type=int, default=20000)
     p.add_argument("--max_val", type=int, default=2000)
     args = p.parse_args()
-    prepare_tinystories(args.out_dir, args.max_train, args.max_val)
+    tok = _load_tokenizer(args.tokenizer)
+    prepare_tinystories(args.out_dir, tokenizer=tok,
+                        max_train=args.max_train, max_val=args.max_val)

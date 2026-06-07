@@ -1,5 +1,6 @@
 import os
 import json
+import time
 
 import numpy as np
 import mlx.core as mx
@@ -31,7 +32,8 @@ def make_step(model, optimizer):
 
 
 def train_main(data_dir, out_dir, cfg=None, max_iters=2000, batch_size=32,
-               eval_interval=200, lr=3e-4, resume=False):
+               eval_interval=200, lr=3e-4, resume=False, throttle=0.0):
+    """throttle: her adımdan sonra beklenecek saniye (GPU'ya nefes molası → daha az ısı/fan)."""
     cfg = cfg or GPTConfig()
     os.makedirs(out_dir, exist_ok=True)
     ckpt = os.path.join(out_dir, "ckpt.safetensors")
@@ -55,6 +57,8 @@ def train_main(data_dir, out_dir, cfg=None, max_iters=2000, batch_size=32,
     for it in range(start_iter, max_iters):
         x, y = get_batch(train_data, cfg.block_size, batch_size, rng)
         loss = step(x, y)
+        if throttle:
+            time.sleep(throttle)
         if it % eval_interval == 0 or it == max_iters - 1:
             l = float(loss)
             history.append((it, l))
@@ -75,6 +79,15 @@ if __name__ == "__main__":
     p.add_argument("--eval_interval", type=int, default=200)
     p.add_argument("--lr", type=float, default=3e-4)
     p.add_argument("--resume", action="store_true")
+    p.add_argument("--tokenizer", default=None, help="BPE tokenizer.json yolu; vocab_size buradan alınır")
+    p.add_argument("--throttle", type=float, default=0.0, help="adım başına saniye bekleme (fan/ısı düşürür)")
     a = p.parse_args()
-    train_main(a.data_dir, a.out_dir, max_iters=a.max_iters, batch_size=a.batch_size,
-               eval_interval=a.eval_interval, lr=a.lr, resume=a.resume)
+    cfg = GPTConfig()
+    if a.tokenizer:
+        from mindllm.bpe import BPETokenizer
+        tok = BPETokenizer.load(a.tokenizer)
+        cfg = GPTConfig(vocab_size=tok.vocab_size)
+        print(f"tokenizer yüklendi: vocab {cfg.vocab_size}")
+    train_main(a.data_dir, a.out_dir, cfg=cfg, max_iters=a.max_iters,
+               batch_size=a.batch_size, eval_interval=a.eval_interval,
+               lr=a.lr, resume=a.resume, throttle=a.throttle)
