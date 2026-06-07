@@ -75,6 +75,14 @@ if __name__ == "__main__":
     p.add_argument("--eval_interval", type=int, default=200)
     p.add_argument("--lr", type=float, default=3e-4)
     p.add_argument("--resume", action="store_true")
+    p.add_argument("--tokenizer", default=None, help="BPE tokenizer.json yolu; vocab_size buradan alınır")
     a = p.parse_args()
-    train_main(a.data_dir, a.out_dir, max_iters=a.max_iters, batch_size=a.batch_size,
-               eval_interval=a.eval_interval, lr=a.lr, resume=a.resume)
+    cfg = GPTConfig()
+    if a.tokenizer:
+        from mindllm.bpe import BPETokenizer
+        tok = BPETokenizer.load(a.tokenizer)
+        cfg = GPTConfig(vocab_size=tok.vocab_size)
+        print(f"tokenizer yüklendi: vocab {cfg.vocab_size}")
+    train_main(a.data_dir, a.out_dir, cfg=cfg, max_iters=a.max_iters,
+               batch_size=a.batch_size, eval_interval=a.eval_interval,
+               lr=a.lr, resume=a.resume)

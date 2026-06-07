@@ -49,3 +49,18 @@ def test_resume_continues_iteration(tmp_path):
     hist = train_main(str(data_dir), out, cfg=cfg, max_iters=150, batch_size=16,
                       eval_interval=50, resume=True)
     assert hist[0][0] >= 100
+
+
+def test_train_with_custom_vocab(tmp_path):
+    import numpy as np
+    from mindllm.model import GPTConfig
+    from mindllm.train import train_main
+    d = tmp_path / "data"
+    d.mkdir()
+    arr = np.tile(np.arange(60, dtype=np.uint16), 3000)  # id'ler < 300
+    arr.tofile(str(d / "train.bin"))
+    arr.tofile(str(d / "val.bin"))
+    cfg = GPTConfig(vocab_size=300, block_size=32, n_layer=2, n_head=2, n_embd=64)
+    hist = train_main(str(d), str(tmp_path / "out"), cfg=cfg,
+                      max_iters=200, batch_size=16, eval_interval=50)
+    assert hist[-1][1] < hist[0][1]
