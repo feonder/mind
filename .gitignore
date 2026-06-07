@@ -12,5 +12,12 @@
 __pycache__/
 *.pyc
 mindllm/data/*.bin
+mindllm/data_bpe/
+mindllm/data_code/
+mindllm/data_distill/
 out/
+out_bpe/
+out_code/
+out_distill/
+out_124m/
 *.safetensors
