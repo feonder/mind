@@ -6,3 +6,11 @@
 
 # macOS
 .DS_Store
+
+# Mind LLM
+.venv/
+__pycache__/
+*.pyc
+mindllm/data/*.bin
+out/
+*.safetensors
