@@ -33,3 +33,12 @@ def test_save_load_roundtrip(tmp_path):
     assert tok2.encode(s) == tok.encode(s)
     assert tok2.vocab_size == tok.vocab_size
     assert tok2.decode(tok2.encode(s)) == s
+
+
+def test_train_on_code_text():
+    from mindllm.bpe import BPETokenizer
+    code = ("def foo():\n    return 1\n" * 100
+            + "import os\nfor i in range(10):\n    print(i)\n" * 100)
+    tok = BPETokenizer().train(code, vocab_size=320)
+    assert tok.vocab_size == 320
+    assert tok.decode(tok.encode("def foo():")) == "def foo():"
