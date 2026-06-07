@@ -43,16 +43,12 @@ class BPETokenizer:
         for i in range(num_merges):
             stats = get_stats(ids)
             if not stats:
-                # Text fully compressed; pad vocab with single-byte entries
-                # so vocab_size is always exactly as requested.
-                idx = 256 + i
-                self.vocab[idx] = bytes([i % 256])
-            else:
-                pair = max(stats, key=stats.get)
-                idx = 256 + i
-                ids = merge(ids, pair, idx)
-                self.merges[pair] = idx
-                self.vocab[idx] = self.vocab[pair[0]] + self.vocab[pair[1]]
+                break
+            pair = max(stats, key=stats.get)
+            idx = 256 + i
+            ids = merge(ids, pair, idx)
+            self.merges[pair] = idx
+            self.vocab[idx] = self.vocab[pair[0]] + self.vocab[pair[1]]
             if verbose and i % 200 == 0:
                 print(f"merge {i + 1}/{num_merges}: idx={idx}")
         return self
@@ -72,14 +68,9 @@ class BPETokenizer:
         return tokens.decode("utf-8", errors="replace")
 
     def save(self, path):
-        # Pad entries: vocab entries with idx >= 256 that have no merge pair
-        merge_idxs = set(self.merges.values())
-        pads = {idx: list(bts) for idx, bts in self.vocab.items()
-                if idx >= 256 and idx not in merge_idxs}
         data = {
             "vocab_size": self.vocab_size,
             "merges": [[p0, p1, idx] for (p0, p1), idx in self.merges.items()],
-            "pads": [[idx, bts] for idx, bts in pads.items()],
         }
         with open(path, "w") as f:
             json.dump(data, f)
@@ -93,8 +84,6 @@ class BPETokenizer:
         tok.vocab = {i: bytes([i]) for i in range(256)}
         for (p0, p1), idx in sorted(tok.merges.items(), key=lambda kv: kv[1]):
             tok.vocab[idx] = tok.vocab[p0] + tok.vocab[p1]
-        for idx, bts in data.get("pads", []):
-            tok.vocab[idx] = bytes(bts)
         return tok
 
 

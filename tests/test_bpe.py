@@ -2,7 +2,9 @@ from mindllm.bpe import BPETokenizer
 
 
 def test_train_reaches_vocab_size():
-    text = "the quick brown fox jumps over the lazy dog. " * 300
+    text = ("the quick brown fox jumps over the lazy dog near the river. "
+            "a wizard's job is to vex chumps quickly in fog. "
+            "pack my box with five dozen liquor jugs every morning. ") * 400
     tok = BPETokenizer().train(text, vocab_size=320)
     assert tok.vocab_size == 320
 
