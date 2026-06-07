@@ -1,0 +1,4 @@
+mlx>=0.18
+numpy>=1.26
+datasets>=2.19
+pytest>=8
