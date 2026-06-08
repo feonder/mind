@@ -42,3 +42,21 @@ def test_train_on_code_text():
     tok = BPETokenizer().train(code, vocab_size=320)
     assert tok.vocab_size == 320
     assert tok.decode(tok.encode("def foo():")) == "def foo():"
+
+
+def test_fast_encode_equals_naive():
+    """Hızlı encode, yavaş referansla BİREBİR aynı sonucu vermeli."""
+    import random
+    corpus = ("the quick brown fox jumps over the lazy dog. " * 100
+              + "Merhaba dünya çörek ışık ağaç. " * 50
+              + "aaa bbb ccc aabbcc the the the cat sat. " * 80)
+    tok = BPETokenizer().train(corpus, vocab_size=500)
+    # kenar durumlar
+    for s in ["", "a", "the", "aaaa", "the the the", "çörek", "Merhaba dünya"]:
+        assert tok.encode(s) == tok._encode_naive(s), f"uyuşmazlık: {s!r}"
+    # rastgele dizeler
+    rng = random.Random(42)
+    alphabet = "the quick brown fox abcçğ 123 .,! "
+    for _ in range(300):
+        s = "".join(rng.choice(alphabet) for _ in range(rng.randint(0, 60)))
+        assert tok.encode(s) == tok._encode_naive(s), f"uyuşmazlık: {s!r}"

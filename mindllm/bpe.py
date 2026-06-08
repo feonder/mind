@@ -1,3 +1,4 @@
+import heapq
 import json
 
 
@@ -53,7 +54,8 @@ class BPETokenizer:
                 print(f"merge {i + 1}/{num_merges}: idx={idx}")
         return self
 
-    def encode(self, text):
+    def _encode_naive(self, text):
+        """Referans (yavaş O(n^2)) encode — fast encode'un eşitlik testi için."""
         ids = list(text.encode("utf-8"))
         while len(ids) >= 2:
             stats = get_stats(ids)
@@ -62,6 +64,51 @@ class BPETokenizer:
                 break
             ids = merge(ids, pair, self.merges[pair])
         return ids
+
+    def encode(self, text):
+        """Hızlı encode (heap + bağlı liste, O(n log n)). _encode_naive ile AYNI sonuç.
+        Merge id'si (idx) aynı zamanda öncelik sırasıdır (düşük idx = erken merge)."""
+        ids = list(text.encode("utf-8"))
+        n = len(ids)
+        if n < 2:
+            return ids
+        nxt = list(range(1, n + 1))
+        nxt[-1] = -1
+        prv = list(range(-1, n - 1))
+        alive = [True] * n
+        heap = [(r, i) for i in range(n - 1)
+                if (r := self.merges.get((ids[i], ids[i + 1]))) is not None]
+        heapq.heapify(heap)
+        while heap:
+            r, i = heapq.heappop(heap)
+            if not alive[i]:
+                continue
+            j = nxt[i]
+            if j == -1 or not alive[j]:
+                continue
+            if self.merges.get((ids[i], ids[j])) != r:
+                continue  # bayat girdi
+            ids[i] = r          # birleşmiş token = merge id'si
+            alive[j] = False
+            nj = nxt[j]
+            nxt[i] = nj
+            if nj != -1:
+                prv[nj] = i
+            p = prv[i]
+            if p != -1:
+                nr = self.merges.get((ids[p], ids[i]))
+                if nr is not None:
+                    heapq.heappush(heap, (nr, p))
+            if nj != -1:
+                nr = self.merges.get((ids[i], ids[nj]))
+                if nr is not None:
+                    heapq.heappush(heap, (nr, i))
+        out = []
+        k = 0
+        while k != -1:
+            out.append(ids[k])
+            k = nxt[k]
+        return out
 
     def decode(self, ids):
         tokens = b"".join(self.vocab[int(i)] for i in ids)
