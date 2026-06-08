@@ -44,3 +44,17 @@ def test_run_none_tool_no_network():
     assert res["tool"] == "none"
     assert res["answer"] == "42"
     assert res["result"] == ""
+
+
+def test_calculator_real_math():
+    from mindllm.brain import tool_calculator
+    assert tool_calculator("17 + 28") == "17 + 28 = 45"
+    assert tool_calculator("6 * 7") == "6 * 7 = 42"
+    assert "calculator" in TOOLS
+
+
+def test_calculator_rejects_code():
+    from mindllm.brain import tool_calculator
+    import pytest
+    with pytest.raises(Exception):
+        tool_calculator("__import__('os').system('ls')")

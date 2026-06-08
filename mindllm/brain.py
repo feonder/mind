@@ -7,7 +7,9 @@ göre hangi aracı kullanacağına KENDİ karar verir; sonucu alıp cevaplar.
 Yeni yetenek eklemek = TOOLS'a yeni bir araç eklemek. Per-tool if/else yok —
 beyin ne zaman kullanacağını seçer (ReAct / function-calling mantığı).
 """
+import ast
 import json
+import operator
 import re
 import urllib.parse
 import urllib.request
@@ -17,6 +19,28 @@ from mindllm.agent import web_context
 
 
 # ---- Araçlar (her biri: açıklama + fonksiyon) ----
+
+_MATH_OPS = {
+    ast.Add: operator.add, ast.Sub: operator.sub, ast.Mult: operator.mul,
+    ast.Div: operator.truediv, ast.FloorDiv: operator.floordiv,
+    ast.Mod: operator.mod, ast.Pow: operator.pow, ast.USub: operator.neg,
+}
+
+
+def _safe_eval(node):
+    if isinstance(node, ast.Constant) and isinstance(node.value, (int, float)):
+        return node.value
+    if isinstance(node, ast.BinOp) and type(node.op) in _MATH_OPS:
+        return _MATH_OPS[type(node.op)](_safe_eval(node.left), _safe_eval(node.right))
+    if isinstance(node, ast.UnaryOp) and type(node.op) in _MATH_OPS:
+        return _MATH_OPS[type(node.op)](_safe_eval(node.operand))
+    raise ValueError("desteklenmeyen ifade")
+
+
+def tool_calculator(expression, **_):
+    """Güvenli aritmetik (sadece sayı + işlem; kod çalıştırmaz). GERÇEK hesap."""
+    result = _safe_eval(ast.parse(expression.strip(), mode="eval").body)
+    return f"{expression} = {result}"
 
 def tool_weather(location, **_):
     """Bir şehrin güncel hava durumu (wttr.in, key'siz)."""
@@ -36,6 +60,10 @@ def tool_wikipedia(query, lang="tr", **_):
 
 
 TOOLS = {
+    "calculator": {
+        "desc": 'Aritmetik hesaplama (GERÇEK hesap). args: {"expression": "17 + 28"}',
+        "fn": tool_calculator,
+    },
     "weather": {
         "desc": 'Bir şehrin GÜNCEL/CANLI hava durumu. args: {"location": "şehir"}',
         "fn": tool_weather,

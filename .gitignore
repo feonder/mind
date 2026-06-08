@@ -29,3 +29,7 @@ mindllm/data_tr2/
 out_tr2/
 mindllm/data_bpe_big/
 out_bpe_big/
+mindllm/data_bpe_big2/
+out_bpe_big2/
+mindllm/data_math/
+out_math/
