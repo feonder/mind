@@ -25,3 +25,5 @@ out_124m/
 out_tr/
 out_codeinstruct/
 *.safetensors
+mindllm/data_tr2/
+out_tr2/
