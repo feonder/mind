@@ -19,7 +19,8 @@ from mindllm.tokenizer import ByteTokenizer
 
 # (out_dir, tokenizer_path) — tokenizer_path None ise byte-level
 PRESETS = {
-    "story": ("out_bpe", "out/tokenizer.json"),       # F2 — en tutarlı
+    "story": ("out_bpe_big", "out/tokenizer.json"),   # en iyi İngilizce (60k hikâye, 3x veri)
+    "story1": ("out_bpe", "out/tokenizer.json"),      # F2 (20k hikâye)
     "tr": ("out_tr2", "out/tokenizer_tr2.json"),      # Türkçe model v2 (2300 hikâye)
     "tr1": ("out_tr", "out/tokenizer_tr.json"),       # Türkçe v1 (800 hikâye)
     "code": ("out_code", "out/tokenizer_code.json"),  # Python kodu
