@@ -17,9 +17,30 @@ TOPICS = [
 
 NAMES = ["Tom", "Lily", "Ben", "Mia", "Sam", "Anna", "Leo", "Zoe", "Max", "Ella"]
 
+TR_TOPICS = [
+    "kaybolan bir kedi", "sihirli bir ağaç", "oyuncak paylaşmak", "yağmurlu bir gün",
+    "cesur küçük bir fare", "yeni bir arkadaş edinmek", "deniz kenarına gezi",
+    "nazik bir ejderha", "paylaşmayı öğrenmek", "doğum günü sürprizi",
+    "annesine mutfakta yardım etmek", "gökten düşen bir yıldız", "meraklı bir köpek",
+    "rengarenk bir çiçek bahçesi", "karlı bir sabah", "küçük kırmızı bir tekne",
+    "küçük bir hazine bulmak", "uykucu bir ayı", "ay ve deniz",
+    "şarkı söyleyen bir kuş", "kırık bir oyuncak", "parkta bir yürüyüş",
+]
 
-def build_prompt(i):
-    """index'e göre çeşitli (karakter + konu) hikâye prompt'u üretir."""
+TR_NAMES = ["Ayşe", "Mehmet", "Elif", "Can", "Zeynep", "Ali", "Defne", "Emir", "Mavi", "Deniz"]
+
+
+def build_prompt(i, lang="en"):
+    """index'e göre çeşitli (karakter + konu) hikâye prompt'u üretir. lang: en|tr."""
+    if lang == "tr":
+        topic = TR_TOPICS[i % len(TR_TOPICS)]
+        name = TR_NAMES[i % len(TR_NAMES)]
+        return (
+            "4 yaşındaki bir çocuk için çok kısa, basit bir Türkçe masal yaz "
+            "(yaklaşık 90 kelime), sadece kolay ve günlük kelimeler kullan. "
+            f"Ana kahramanın adı {name}. Masal {topic} hakkında. "
+            "Sadece masal metnini yaz, başlık veya ek açıklama yazma."
+        )
     topic = TOPICS[i % len(TOPICS)]
     name = NAMES[i % len(NAMES)]
     return (
@@ -44,15 +65,17 @@ def ollama_generate(prompt, model="qwen2.5:3b", host="http://localhost:11434",
         return json.loads(r.read().decode("utf-8"))["response"]
 
 
-def generate_corpus(out_file, n=400, model="qwen2.5:3b", sleep=1.5, temperature=0.9):
+def generate_corpus(out_file, n=400, model="qwen2.5:3b", sleep=1.5, temperature=0.9,
+                    lang="en"):
     """n adet sentetik hikâye üretip out_file'a yazar. Çağrılar arası `sleep`
-    saniye bekler (GPU'ya nefes → daha az ısı/fan)."""
+    saniye bekler (GPU'ya nefes → daha az ısı/fan). lang: en|tr."""
     os.makedirs(os.path.dirname(out_file) or ".", exist_ok=True)
     written = 0
     with open(out_file, "w", encoding="utf-8") as f:
         for i in range(n):
             try:
-                text = ollama_generate(build_prompt(i), model=model, temperature=temperature)
+                text = ollama_generate(build_prompt(i, lang=lang), model=model,
+                                       temperature=temperature)
             except Exception as e:
                 print(f"skip {i}: {e}")
                 time.sleep(sleep)
@@ -75,5 +98,6 @@ if __name__ == "__main__":
     p.add_argument("--n", type=int, default=400)
     p.add_argument("--model", default="qwen2.5:3b")
     p.add_argument("--sleep", type=float, default=1.5)
+    p.add_argument("--lang", default="en", choices=["en", "tr"])
     a = p.parse_args()
-    generate_corpus(a.out, n=a.n, model=a.model, sleep=a.sleep)
+    generate_corpus(a.out, n=a.n, model=a.model, sleep=a.sleep, lang=a.lang)
