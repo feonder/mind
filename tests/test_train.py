@@ -27,7 +27,8 @@ def test_end_to_end_tiny(tmp_path):
     arr.tofile(str(data_dir / "val.bin"))
     cfg = GPTConfig(vocab_size=256, block_size=32, n_layer=2, n_head=2, n_embd=64)
     hist = train_main(str(data_dir), str(tmp_path / "out"), cfg=cfg,
-                      max_iters=300, batch_size=16, eval_interval=50)
+                      max_iters=300, batch_size=16, eval_interval=50,
+                      status_path=str(tmp_path / "st.json"))
     assert hist[-1][1] < hist[0][1]
     assert (tmp_path / "out" / "ckpt.safetensors").exists()
     assert (tmp_path / "out" / "meta.json").exists()
@@ -41,13 +42,14 @@ def test_resume_continues_iteration(tmp_path):
     arr.tofile(str(data_dir / "val.bin"))
     cfg = GPTConfig(vocab_size=256, block_size=32, n_layer=2, n_head=2, n_embd=64)
     out = str(tmp_path / "out")
-    train_main(str(data_dir), out, cfg=cfg, max_iters=100, batch_size=16, eval_interval=50)
+    train_main(str(data_dir), out, cfg=cfg, max_iters=100, batch_size=16, eval_interval=50,
+               status_path=str(tmp_path / "st.json"))
     import json
     meta = json.load(open(tmp_path / "out" / "meta.json"))
     assert meta["iter"] == 100
     # resume: 100'den 150'ye devam
     hist = train_main(str(data_dir), out, cfg=cfg, max_iters=150, batch_size=16,
-                      eval_interval=50, resume=True)
+                      eval_interval=50, resume=True, status_path=str(tmp_path / "st.json"))
     assert hist[0][0] >= 100
 
 
@@ -62,7 +64,8 @@ def test_train_with_custom_vocab(tmp_path):
     arr.tofile(str(d / "val.bin"))
     cfg = GPTConfig(vocab_size=300, block_size=32, n_layer=2, n_head=2, n_embd=64)
     hist = train_main(str(d), str(tmp_path / "out"), cfg=cfg,
-                      max_iters=200, batch_size=16, eval_interval=50)
+                      max_iters=200, batch_size=16, eval_interval=50,
+                      status_path=str(tmp_path / "st.json"))
     assert hist[-1][1] < hist[0][1]
 
 
@@ -77,3 +80,14 @@ def test_build_config_defaults():
     from mindllm.train import build_config
     cfg = build_config()
     assert cfg.n_layer == 6 and cfg.n_embd == 384 and cfg.vocab_size == 256
+
+
+def test_write_status_file(tmp_path):
+    import json
+    from mindllm.train import _write_status
+    p = str(tmp_path / "status.json")
+    _write_status(p, "out_demo", 50, 200, 1.234, running=True)
+    d = json.load(open(p))
+    assert d["percent"] == 25.0
+    assert d["iter"] == 50 and d["max_iters"] == 200
+    assert d["model"] == "out_demo" and d["running"] is True

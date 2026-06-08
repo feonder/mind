@@ -46,9 +46,22 @@ def make_step(model, optimizer):
     return step
 
 
+def _write_status(path, out_dir, it, max_iters, loss, running):
+    """Dashboard'ın okuyabilmesi için canlı eğitim durumu (yüzde dahil) yazar."""
+    os.makedirs(os.path.dirname(path) or ".", exist_ok=True)
+    json.dump({
+        "model": os.path.basename(out_dir.rstrip("/")),
+        "iter": it, "max_iters": max_iters,
+        "percent": round(100.0 * it / max_iters, 1) if max_iters else 0.0,
+        "loss": round(loss, 4), "running": running,
+    }, open(path, "w"))
+
+
 def train_main(data_dir, out_dir, cfg=None, max_iters=2000, batch_size=32,
-               eval_interval=200, lr=3e-4, resume=False, throttle=0.0):
-    """throttle: her adımdan sonra beklenecek saniye (GPU'ya nefes molası → daha az ısı/fan)."""
+               eval_interval=200, lr=3e-4, resume=False, throttle=0.0,
+               status_path="out/train_status.json"):
+    """throttle: her adımdan sonra beklenecek saniye (GPU'ya nefes molası → daha az ısı/fan).
+    status_path: canlı eğitim durumu (dashboard'ın gösterebilmesi için)."""
     cfg = cfg or GPTConfig()
     os.makedirs(out_dir, exist_ok=True)
     ckpt = os.path.join(out_dir, "ckpt.safetensors")
@@ -80,7 +93,10 @@ def train_main(data_dir, out_dir, cfg=None, max_iters=2000, batch_size=32,
             print(f"iter {it}: loss {l:.4f}")
             model.save_weights(ckpt)
             json.dump({"iter": it + 1, "config": vars(cfg)}, open(meta_path, "w"))
+            _write_status(status_path, out_dir, it + 1, max_iters, l, running=True)
 
+    final_loss = history[-1][1] if history else 0.0
+    _write_status(status_path, out_dir, max_iters, max_iters, final_loss, running=False)
     return history
 
 
