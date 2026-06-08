@@ -7,8 +7,23 @@ import mlx.core as mx
 import mlx.nn as nn
 import mlx.optimizers as optim
 
-from mindllm.model import GPT, GPTConfig
+from mindllm.model import GPT, GPTConfig, count_params
 from mindllm.data import get_batch, load_bin
+
+
+def build_config(tokenizer_path=None, n_layer=None, n_head=None, n_embd=None,
+                 block_size=None):
+    """GPTConfig'i opsiyonel override'larla kurar. tokenizer verilirse vocab_size
+    oradan alınır; n_layer/n_head/n_embd/block_size None değilse override edilir."""
+    overrides = {}
+    if tokenizer_path:
+        from mindllm.bpe import BPETokenizer
+        overrides["vocab_size"] = BPETokenizer.load(tokenizer_path).vocab_size
+    for key, val in (("n_layer", n_layer), ("n_head", n_head),
+                     ("n_embd", n_embd), ("block_size", block_size)):
+        if val is not None:
+            overrides[key] = val
+    return GPTConfig(**overrides)
 
 
 def loss_fn(model, x, y):
@@ -81,13 +96,15 @@ if __name__ == "__main__":
     p.add_argument("--resume", action="store_true")
     p.add_argument("--tokenizer", default=None, help="BPE tokenizer.json yolu; vocab_size buradan alınır")
     p.add_argument("--throttle", type=float, default=0.0, help="adım başına saniye bekleme (fan/ısı düşürür)")
+    p.add_argument("--n_layer", type=int, default=None)
+    p.add_argument("--n_head", type=int, default=None)
+    p.add_argument("--n_embd", type=int, default=None)
+    p.add_argument("--block_size", type=int, default=None)
     a = p.parse_args()
-    cfg = GPTConfig()
-    if a.tokenizer:
-        from mindllm.bpe import BPETokenizer
-        tok = BPETokenizer.load(a.tokenizer)
-        cfg = GPTConfig(vocab_size=tok.vocab_size)
-        print(f"tokenizer yüklendi: vocab {cfg.vocab_size}")
+    cfg = build_config(tokenizer_path=a.tokenizer, n_layer=a.n_layer,
+                       n_head=a.n_head, n_embd=a.n_embd, block_size=a.block_size)
+    print(f"model: vocab {cfg.vocab_size}, {cfg.n_layer}L/{cfg.n_head}H/{cfg.n_embd}d, "
+          f"~{count_params(GPT(cfg)) / 1e6:.1f}M param")
     train_main(a.data_dir, a.out_dir, cfg=cfg, max_iters=a.max_iters,
                batch_size=a.batch_size, eval_interval=a.eval_interval,
                lr=a.lr, resume=a.resume, throttle=a.throttle)

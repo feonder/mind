@@ -64,3 +64,16 @@ def test_train_with_custom_vocab(tmp_path):
     hist = train_main(str(d), str(tmp_path / "out"), cfg=cfg,
                       max_iters=200, batch_size=16, eval_interval=50)
     assert hist[-1][1] < hist[0][1]
+
+
+def test_build_config_overrides_dims():
+    from mindllm.train import build_config
+    cfg = build_config(n_layer=12, n_head=12, n_embd=768)
+    assert cfg.n_layer == 12 and cfg.n_head == 12 and cfg.n_embd == 768
+    assert cfg.vocab_size == 256  # tokenizer verilmedi → default
+
+
+def test_build_config_defaults():
+    from mindllm.train import build_config
+    cfg = build_config()
+    assert cfg.n_layer == 6 and cfg.n_embd == 384 and cfg.vocab_size == 256
