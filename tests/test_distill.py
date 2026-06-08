@@ -15,3 +15,16 @@ def test_build_prompt_varies_by_index():
 def test_build_prompt_wraps_with_modulo():
     n = len(TOPICS)
     assert TOPICS[0] in build_prompt(n)  # index n -> topic 0 (modulo)
+
+
+def test_build_prompt_turkish():
+    from mindllm.distill import build_prompt, TR_TOPICS, TR_NAMES
+    p = build_prompt(0, lang="tr")
+    assert TR_NAMES[0] in p
+    assert TR_TOPICS[0] in p
+    assert "Türkçe" in p
+
+
+def test_build_prompt_default_is_english():
+    from mindllm.distill import build_prompt
+    assert "children's story" in build_prompt(0)

@@ -15,9 +15,11 @@ mindllm/data/*.bin
 mindllm/data_bpe/
 mindllm/data_code/
 mindllm/data_distill/
+mindllm/data_tr/
 out/
 out_bpe/
 out_code/
 out_distill/
 out_124m/
+out_tr/
 *.safetensors
