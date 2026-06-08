@@ -95,16 +95,21 @@ if __name__ == "__main__":
     p.add_argument("--vocab_size", type=int, default=4096)
     p.add_argument("--max_chars", type=int, default=2_000_000)
     p.add_argument("--max_docs", type=int, default=30000)
+    p.add_argument("--text_file", default=None, help="verilirse TinyStories yerine bu dosyadan eğit")
     a = p.parse_args()
-    from datasets import load_dataset
-    ds = load_dataset("roneneldan/TinyStories")
-    parts, total = [], 0
-    for i, ex in enumerate(ds["train"]):
-        if i >= a.max_docs or total >= a.max_chars:
-            break
-        parts.append(ex["text"])
-        total += len(ex["text"])
-    text = "\n".join(parts)
+    if a.text_file:
+        with open(a.text_file, "r", encoding="utf-8") as f:
+            text = f.read()[:a.max_chars]
+    else:
+        from datasets import load_dataset
+        ds = load_dataset("roneneldan/TinyStories")
+        parts, total = [], 0
+        for i, ex in enumerate(ds["train"]):
+            if i >= a.max_docs or total >= a.max_chars:
+                break
+            parts.append(ex["text"])
+            total += len(ex["text"])
+        text = "\n".join(parts)
     print(f"BPE eğitimi: {len(text)} karakter, hedef vocab {a.vocab_size}")
     tok = BPETokenizer().train(text, vocab_size=a.vocab_size, verbose=True)
     os.makedirs(os.path.dirname(a.out) or ".", exist_ok=True)
