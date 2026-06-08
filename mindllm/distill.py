@@ -44,8 +44,28 @@ CODE_TASKS = [
 ]
 
 
+MATH_TOPICS = [
+    "addition of two numbers", "subtraction", "multiplication", "division with remainder",
+    "a simple word problem about apples", "a word problem about money",
+    "finding half of a number", "comparing two numbers", "a two-step word problem",
+    "rounding to the nearest ten", "simple fractions", "counting by fives",
+    "perimeter of a rectangle", "telling how many minutes", "doubling a number",
+    "a word problem about sharing candy", "adding three numbers",
+    "subtracting to find the difference", "multiplication as repeated addition",
+    "a simple division word problem",
+]
+
+
 def build_prompt(i, lang="en", mode="story"):
-    """index'e göre prompt üretir. mode: story|code. story'de lang: en|tr."""
+    """index'e göre prompt üretir. mode: story|code|math. story'de lang: en|tr."""
+    if mode == "math":
+        topic = MATH_TOPICS[i % len(MATH_TOPICS)]
+        return (
+            "Generate ONE short elementary-school math problem about "
+            f"{topic}, with a clear step-by-step solution. Use small numbers. "
+            "Format exactly:\nProblem: <problem>\nSolution: <short steps>\n"
+            "Answer: <final answer>\nOutput only this, nothing else."
+        )
     if mode == "code":
         task = CODE_TASKS[i % len(CODE_TASKS)]
         return (
@@ -121,6 +141,6 @@ if __name__ == "__main__":
     p.add_argument("--model", default="qwen2.5:3b")
     p.add_argument("--sleep", type=float, default=1.5)
     p.add_argument("--lang", default="en", choices=["en", "tr"])
-    p.add_argument("--mode", default="story", choices=["story", "code"])
+    p.add_argument("--mode", default="story", choices=["story", "code", "math"])
     a = p.parse_args()
     generate_corpus(a.out, n=a.n, model=a.model, sleep=a.sleep, lang=a.lang, mode=a.mode)

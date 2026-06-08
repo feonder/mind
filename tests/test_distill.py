@@ -35,3 +35,10 @@ def test_build_prompt_code_mode():
     p = build_prompt(0, mode="code")
     assert CODE_TASKS[0] in p
     assert "Python" in p
+
+
+def test_build_prompt_math_mode():
+    from mindllm.distill import build_prompt, MATH_TOPICS
+    p = build_prompt(0, mode="math")
+    assert MATH_TOPICS[0] in p
+    assert "Problem:" in p
