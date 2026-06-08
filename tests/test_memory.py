@@ -37,3 +37,11 @@ def test_clear(tmp_path):
     mem.add("a")
     mem.clear()
     assert mem.all() == []
+
+
+def test_recall_matches_turkish_inflections(tmp_path):
+    mem = Memory(str(tmp_path / "m.json"))
+    mem.add("Her fonksiyona Türkçe docstring yaz")
+    # 'fonksiyon' (çekimsiz) 'fonksiyona'yı bulmalı (kök eşleşmesi)
+    hits = mem.recall("bir fonksiyon nasıl yazılır", k=1)
+    assert len(hits) == 1

@@ -10,7 +10,9 @@ import re
 
 
 def _tokenize(text):
-    return set(re.findall(r"\w+", text.lower()))
+    """Kelime köklerini (ilk 5 karakter) döner — Türkçe çekimleri eşleştirmek için
+    ('fonksiyon' ve 'fonksiyona' → 'fonks'). 3 harften kısa kelimeler atlanır."""
+    return {w[:5] for w in re.findall(r"\w+", text.lower()) if len(w) >= 3}
 
 
 class Memory:
