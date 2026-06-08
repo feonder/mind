@@ -28,3 +28,10 @@ def test_build_prompt_turkish():
 def test_build_prompt_default_is_english():
     from mindllm.distill import build_prompt
     assert "children's story" in build_prompt(0)
+
+
+def test_build_prompt_code_mode():
+    from mindllm.distill import build_prompt, CODE_TASKS
+    p = build_prompt(0, mode="code")
+    assert CODE_TASKS[0] in p
+    assert "Python" in p

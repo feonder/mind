@@ -29,9 +29,31 @@ TR_TOPICS = [
 
 TR_NAMES = ["Ayşe", "Mehmet", "Elif", "Can", "Zeynep", "Ali", "Defne", "Emir", "Mavi", "Deniz"]
 
+CODE_TASKS = [
+    "reverse a string", "check if a number is prime", "compute factorial",
+    "find the maximum in a list", "count words in a text", "read a file line by line",
+    "merge two dictionaries", "compute the nth fibonacci number",
+    "sort a list of tuples by the second item", "remove duplicates from a list",
+    "check if a string is a palindrome", "flatten a nested list",
+    "calculate the average of a list", "find common elements of two lists",
+    "convert celsius to fahrenheit", "generate a list of squares",
+    "count vowels in a string", "compute factorial recursively",
+    "check if a year is a leap year", "find the second largest number in a list",
+    "capitalize each word in a sentence", "sum the digits of a number",
+    "filter even numbers from a list", "binary search in a sorted list",
+]
 
-def build_prompt(i, lang="en"):
-    """index'e göre çeşitli (karakter + konu) hikâye prompt'u üretir. lang: en|tr."""
+
+def build_prompt(i, lang="en", mode="story"):
+    """index'e göre prompt üretir. mode: story|code. story'de lang: en|tr."""
+    if mode == "code":
+        task = CODE_TASKS[i % len(CODE_TASKS)]
+        return (
+            "Write a short, clean Python function that solves the task. "
+            "Start with a single one-line comment describing the task, then the "
+            f"function definition. Task: {task}. "
+            "Output ONLY Python code — no explanation, no markdown fences."
+        )
     if lang == "tr":
         topic = TR_TOPICS[i % len(TR_TOPICS)]
         name = TR_NAMES[i % len(TR_NAMES)]
@@ -66,16 +88,16 @@ def ollama_generate(prompt, model="qwen2.5:3b", host="http://localhost:11434",
 
 
 def generate_corpus(out_file, n=400, model="qwen2.5:3b", sleep=1.5, temperature=0.9,
-                    lang="en"):
-    """n adet sentetik hikâye üretip out_file'a yazar. Çağrılar arası `sleep`
-    saniye bekler (GPU'ya nefes → daha az ısı/fan). lang: en|tr."""
+                    lang="en", mode="story"):
+    """n adet sentetik örnek üretip out_file'a yazar. mode: story|code.
+    Çağrılar arası `sleep` saniye bekler (GPU'ya nefes → daha az ısı/fan)."""
     os.makedirs(os.path.dirname(out_file) or ".", exist_ok=True)
     written = 0
     with open(out_file, "w", encoding="utf-8") as f:
         for i in range(n):
             try:
-                text = ollama_generate(build_prompt(i, lang=lang), model=model,
-                                       temperature=temperature)
+                text = ollama_generate(build_prompt(i, lang=lang, mode=mode),
+                                       model=model, temperature=temperature)
             except Exception as e:
                 print(f"skip {i}: {e}")
                 time.sleep(sleep)
@@ -99,5 +121,6 @@ if __name__ == "__main__":
     p.add_argument("--model", default="qwen2.5:3b")
     p.add_argument("--sleep", type=float, default=1.5)
     p.add_argument("--lang", default="en", choices=["en", "tr"])
+    p.add_argument("--mode", default="story", choices=["story", "code"])
     a = p.parse_args()
-    generate_corpus(a.out, n=a.n, model=a.model, sleep=a.sleep, lang=a.lang)
+    generate_corpus(a.out, n=a.n, model=a.model, sleep=a.sleep, lang=a.lang, mode=a.mode)
