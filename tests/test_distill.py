@@ -1,0 +1,17 @@
+from mindllm.distill import build_prompt, TOPICS, NAMES
+
+
+def test_build_prompt_contains_name_and_topic():
+    p = build_prompt(0)
+    assert NAMES[0] in p
+    assert TOPICS[0] in p
+    assert "story" in p.lower()
+
+
+def test_build_prompt_varies_by_index():
+    assert build_prompt(0) != build_prompt(1)
+
+
+def test_build_prompt_wraps_with_modulo():
+    n = len(TOPICS)
+    assert TOPICS[0] in build_prompt(n)  # index n -> topic 0 (modulo)
