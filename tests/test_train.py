@@ -91,3 +91,10 @@ def test_write_status_file(tmp_path):
     assert d["percent"] == 25.0
     assert d["iter"] == 50 and d["max_iters"] == 200
     assert d["model"] == "out_demo" and d["running"] is True
+
+
+def test_decode_sample_bytes():
+    import mlx.core as mx
+    from mindllm.train import _decode_sample
+    x = mx.array([[72, 105, 32, 77, 105, 110, 100]], dtype=mx.int32)  # "Hi Mind"
+    assert "Hi" in _decode_sample(None, x)
